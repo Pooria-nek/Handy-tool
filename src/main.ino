@@ -10,6 +10,8 @@ uint32_t color;
 uint16_t colors[] = {TFT_YELLOW, TFT_ORANGE, TFT_RED, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_DARKGREY, TFT_WHITE};
 int numColors = sizeof(colors) / sizeof(colors[0]); // Calculate the number of colors
 
+bool first = false;
+
 void setup()
 {
   Serial.begin(115200);
@@ -60,8 +62,17 @@ void loop()
 
 void page_main()
 {
-  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
-  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+
+    first = false;
+  }
+  else
+  {
+    /* code */
+  }
 }
 
 void page_setting()
