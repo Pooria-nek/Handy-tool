@@ -35,7 +35,7 @@ void loop()
   {
     if (x >= 299 && y <= 201)
     {
-      changecolor(x, y);
+      changecolor(y);
     }
     else
     {
@@ -68,48 +68,19 @@ void drawPalette(uint16_t colors[], int numColors)
   }
 }
 
-void changecolor(int x, int y)
+void changecolor(int y)
 {
-  if (y <= 21)
-  {
-    color = TFT_YELLOW;
-  }
-  else if (y > 21 && y <= 41)
-  {
-    color = TFT_ORANGE;
-  }
-  else if (y > 41 && y <= 61)
-  {
-    color = TFT_RED;
-  }
-  else if (y > 61 && y <= 81)
-  {
-    color = TFT_GREEN;
-  }
-  else if (y > 81 && y <= 101)
-  {
-    color = TFT_DARKGREEN;
-  }
-  else if (y > 101 && y <= 121)
-  {
-    color = TFT_CYAN;
-  }
-  else if (y > 121 && y <= 141)
-  {
-    color = TFT_BLUE;
-  }
-  else if (y > 141 && y <= 161)
-  {
-    color = TFT_DARKGREY;
-  }
-  else if (y > 161 && y <= 181)
-  {
-    color = TFT_WHITE;
-  }
-  else if (y > 181 && y <= 201)
-  {
-    color = TFT_BLACK;
-  }
+  // Calculate the index based on the y value
+  y = y % 20;
+  int index = y / 20;
+  // Ensure index is within bounds
+  if (index < 0)
+    index = 0;
+  else if (index >= sizeof(colors) / sizeof(colors[0]))
+    index = sizeof(colors) / sizeof(colors[0]) - 1;
+
+  // Set the color
+  color = colors[index];
 }
 
 // Code to run a screen calibration, not needed when calibration values set in setup()
