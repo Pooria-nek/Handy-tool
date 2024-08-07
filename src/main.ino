@@ -5,6 +5,10 @@
 #define pin 19
 TFT_eSPI tft = TFT_eSPI();
 uint32_t color;
+
+uint16_t colors[] = {TFT_YELLOW, TFT_ORANGE, TFT_RED, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_DARKGREY, TFT_WHITE};
+int numColors = sizeof(colors) / sizeof(colors[0]); // Calculate the number of colors
+
 void setup()
 {
   Serial.begin(115200);
@@ -19,32 +23,23 @@ void setup()
   tft.fillScreen(TFT_BLACK);
   tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
   color = TFT_RED;
-  tft.fillRect(299 , 1 , 20 , 20 , TFT_YELLOW);
-  tft.fillRect(299 , 21 , 20 , 20 , TFT_ORANGE);
-  tft.fillRect(299 , 41 , 20 , 20 , TFT_RED);
-  tft.fillRect(299 , 61 , 20 , 20 , TFT_GREEN);
-  tft.fillRect(299 , 81 , 20 , 20 , TFT_DARKGREEN);
-  tft.fillRect(299 , 101 , 20 , 20 , TFT_CYAN);
-  tft.fillRect(299 , 121 , 20 , 20 , TFT_BLUE);
-  tft.fillRect(299 , 141 , 20 , 20 , TFT_DARKGREY);
-  tft.fillRect(299 , 161 , 20 , 20 , TFT_WHITE);
-  tft.drawRect(299 , 181 , 20 , 20 , TFT_WHITE);
-  tft.drawRect(304 , 186 , 10 , 10 , TFT_WHITE);
+  // Draw the palette
+  drawPalette(colors, numColors);
 }
 
 void loop()
 {
   uint16_t x, y;
   bool touch = tft.getTouch(&x, &y, 10);
-  if(touch)
+  if (touch)
   {
-    if(x >= 299 && y <= 201)
+    if (x >= 299 && y <= 201)
     {
-      changecolor(x , y);
+      changecolor(x, y);
     }
     else
     {
-      if(color == TFT_BLACK)
+      if (color == TFT_BLACK)
       {
         tft.fillCircle(x, y, 5, color);
       }
@@ -58,9 +53,24 @@ void loop()
     }
   }
 }
-void changecolor(int x , int y)
+
+void drawPalette(uint16_t colors[], int numColors)
 {
-  if(y <= 21)
+  int x = 299;     // x position of the palette
+  int y = 1;       // y starting position of the palette
+  int width = 20;  // width of each rectangle
+  int height = 20; // height of each rectangle
+  int spacing = 1; // spacing between each rectangle
+
+  for (int i = 0; i < numColors; i++)
+  {
+    tft.fillRect(x, y + i * (height + spacing), width, height, colors[i]);
+  }
+}
+
+void changecolor(int x, int y)
+{
+  if (y <= 21)
   {
     color = TFT_YELLOW;
   }
@@ -68,39 +78,40 @@ void changecolor(int x , int y)
   {
     color = TFT_ORANGE;
   }
-  else if(y > 41 && y <= 61)
+  else if (y > 41 && y <= 61)
   {
     color = TFT_RED;
   }
-  else if(y > 61 && y <= 81)
+  else if (y > 61 && y <= 81)
   {
     color = TFT_GREEN;
   }
-  else if(y > 81 && y <= 101)
+  else if (y > 81 && y <= 101)
   {
     color = TFT_DARKGREEN;
   }
-  else if(y > 101 && y <= 121)
+  else if (y > 101 && y <= 121)
   {
     color = TFT_CYAN;
   }
-  else if(y > 121 && y <= 141)
+  else if (y > 121 && y <= 141)
   {
     color = TFT_BLUE;
   }
-  else if(y > 141 && y <= 161)
+  else if (y > 141 && y <= 161)
   {
     color = TFT_DARKGREY;
   }
-  else if(y > 161 && y <= 181)
+  else if (y > 161 && y <= 181)
   {
-    color =TFT_WHITE;
+    color = TFT_WHITE;
   }
-  else if(y > 181 && y <= 201)
+  else if (y > 181 && y <= 201)
   {
     color = TFT_BLACK;
   }
 }
+
 // Code to run a screen calibration, not needed when calibration values set in setup()
 void touch_calibrate()
 {
