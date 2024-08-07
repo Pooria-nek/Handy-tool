@@ -4,6 +4,7 @@
 
 #define pin 19
 TFT_eSPI tft = TFT_eSPI();
+int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
 
 uint16_t colors[] = {TFT_YELLOW, TFT_ORANGE, TFT_RED, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_DARKGREY, TFT_WHITE};
@@ -20,8 +21,11 @@ void setup()
   tft.setTouch(calData);
 
   tft.setRotation(0);
-  tft.fillScreen(TFT_BLACK);
-  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+  screen_width = tft.width();
+  screen_hight = tft.height() - screen_header - screen_footer;
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+  tft.drawRect(0, screen_header, screen_width, screen_hight, TFT_WHITE);
+  tft.println("helllo");
   color = TFT_RED;
   // Draw the palette
   drawPalette(colors, numColors);
@@ -52,6 +56,30 @@ void loop()
       Serial.println(y);
     }
   }
+}
+
+void page_main()
+{
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+}
+
+void page_setting()
+{
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+}
+
+void page_serial()
+{
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+}
+
+void page_paint()
+{
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+  tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
 }
 
 void drawPalette(uint16_t colors[], int numColors)
@@ -90,7 +118,7 @@ void touch_calibrate()
   uint8_t calDataOK = 0;
 
   // Calibrate
-  tft.fillScreen(TFT_BLACK);
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
   tft.setCursor(20, 0);
   tft.setTextFont(2);
   tft.setTextSize(1);
@@ -121,7 +149,7 @@ void touch_calibrate()
   Serial.println();
   Serial.println();
 
-  tft.fillScreen(TFT_BLACK);
+  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
 
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.println("Calibration complete!");
