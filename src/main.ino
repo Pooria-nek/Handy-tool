@@ -15,14 +15,30 @@ TFT_eSPI tft = TFT_eSPI();
 // Repeat calibration if you change the screen rotation.
 #define REPEAT_CAL false
 
+#define BUTTON_W_XL 250
+#define BUTTON_W_L 200
+#define BUTTON_W_M 120
+#define BUTTON_W_S 80
+#define BUTTON_W_xS 40
+
+#define BUTTON_H_XL 250
+#define BUTTON_H_L 200
+#define BUTTON_H_M 120
+#define BUTTON_H_S 80
+#define BUTTON_H_xS 40
+
 int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
-String mainbuttonname[] = {"setting", "serial", "paint"};
+String mainbuttonname[] = {"I/O", "Signal", "wifi", "bluetooth", "sub-G", "NFC", "NRF24", "IR", "paint", "serial", "setting"};
+size_t mainbuttonname_s = sizeof(mainbuttonname) / sizeof(mainbuttonname[0]); // Calculate the number of colors
+String settingbuttonname[] = {"recollibrate"};
 uint16_t colors[] = {TFT_YELLOW, TFT_ORANGE, TFT_RED, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_DARKGREY, TFT_WHITE};
 int numColors = sizeof(colors) / sizeof(colors[0]); // Calculate the number of colors
 bool touch;
 bool first = false;
+bool renderbutton;
 int pageint;
+int timer;
 
 void setup()
 {
@@ -63,13 +79,29 @@ void loop()
     Serial.println(y);
     Serial.println(pageint);
   }
+  if (pageint != 0)
+  {
+    if (renderbutton)
+    {
+      tft.fillCircle(10, screen_header + 10, 7, TFT_RED);
+      renderbutton = false;
+    }
+    else
+    {
+      if (x < 20 && y > screen_header && y < screen_header + 20)
+      {
+        first = true;
+        pageint = 0;
+      }
+    }
+  }
   if (pageint == 0)
   {
     page_main(x, y);
   }
   else if (pageint == 1)
   {
-    page_setting(x, y);
+    page_paint(touch, x, y);
   }
   else if (pageint == 2)
   {
@@ -77,7 +109,7 @@ void loop()
   }
   else if (pageint == 3)
   {
-    page_paint(touch, x, y);
+    page_setting(x, y);
   }
 }
 
@@ -87,7 +119,7 @@ void page_main(int x, int y)
   {
     tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
-    mainpagebutton();
+    buttonplacer(mainbuttonname);
     first = false;
   }
   else
@@ -108,12 +140,88 @@ void page_setting(int x, int y)
   {
     tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
-
+    buttonplacer(settingbuttonname);
+    timer = millis();
     first = false;
+    renderbutton = true;
   }
   else
   {
-    /* code */
+    if (x > 60 && x < 260 && y > 80 && y < 140)
+      touch_calibrate();
+    if (millis() >= timer)
+    {
+      tft.setTextColor(TFT_WHITE, TFT_BLACK);
+      tft.setCursor(0, 200);
+
+      tft.println();
+      tft.print("    chipcores: ");
+      tft.println(ESP.getChipCores());
+      tft.print("    chipmodel: ");
+      tft.println(ESP.getChipModel());
+      tft.print("    chiprevision: ");
+      tft.println(ESP.getChipRevision());
+      tft.println();
+
+      tft.print("    cpufreqMHZ: ");
+      tft.println(ESP.getCpuFreqMHz());
+
+      tft.print("    cyclecount: ");
+      tft.println(ESP.getCycleCount());
+
+      tft.print("    efusemac: ");
+      tft.println(ESP.getEfuseMac());
+
+      tft.print("    freePsram: ");
+      tft.println(ESP.getFreePsram());
+
+      tft.print("    sdkversion: ");
+      tft.println(ESP.getSdkVersion());
+
+      tft.println();
+      tft.print("    sketchsize: ");
+      tft.println(ESP.getSketchSize());
+      tft.print("    freesketchspace: ");
+      tft.println(ESP.getFreeSketchSpace());
+      tft.print("    sketchmd5: ");
+      tft.println(ESP.getSketchMD5());
+      tft.println();
+
+      tft.println();
+      tft.print("    maxallocpsram: ");
+      tft.println(ESP.getMaxAllocPsram());
+      tft.print("    minfreepsram: ");
+      tft.println(ESP.getMinFreePsram());
+      tft.print("    psramsize: ");
+      tft.println(ESP.getPsramSize());
+      tft.println();
+
+      tft.println();
+      tft.print("    flashchipmode: ");
+      tft.println(ESP.getFlashChipMode());
+      tft.print("    flashchipsize: ");
+      tft.println(ESP.getFlashChipSize());
+      tft.print("    flashchipspeed: ");
+      tft.println(ESP.getFlashChipSpeed());
+      tft.println();
+
+      tft.println();
+      tft.print("    heapsize: ");
+      tft.println(ESP.getHeapSize());
+      tft.print("    freeheap: ");
+      tft.println(ESP.getFreeHeap());
+      tft.print("    maxallocheap: ");
+      tft.println(ESP.getMaxAllocHeap());
+      tft.print("    minfreeheap: ");
+      tft.println(ESP.getMinFreeHeap());
+      tft.println();
+
+      // ESP.restart();
+      // ESP.deepSleep();
+      // ESP.
+
+      timer += 1000;
+    }
   }
 }
 
@@ -125,6 +233,7 @@ void page_serial(int x, int y)
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
 
     first = false;
+    renderbutton = true;
   }
   else
   {
@@ -142,6 +251,7 @@ void page_paint(bool touch, int x, int y)
     color = colors[2];
 
     first = false;
+    renderbutton = true;
   }
   else
   {
@@ -165,28 +275,147 @@ void page_paint(bool touch, int x, int y)
     }
   }
 }
-void mainpagebutton()
+void buttonplacer(String name[])
 {
-  int x = 60;
-  int y = 80;
-  int width = 200;
+  int width;
   int height = 60;
-  int spacing = 10;
-  for (int i = 0; i < 3; i++)
+  int vspacing = 10;
+  int spacing;
+  int y = screen_header + vspacing;
+  // int buttoncount = sizeof(name) / sizeof(name[0]);
+  int buttoncount = 11;
+  int c;
+  if(buttoncount <= 6)
   {
-    tft.fillRect(x, y + i * (height + spacing), width, height, TFT_CYAN);
-    tft.drawRect(x, y + i * (height + spacing), width, height, TFT_WHITE);
-    tft.setCursor(x + 20, y + i * (height + spacing) + 30);
-    tft.println(mainbuttonname[i]);
+    c = 1;
   }
+  else if(buttoncount <= 12)
+  {
+    c = 2;
+  }
+
+  switch (c)
+  {
+  case 1:
+    width = BUTTON_W_XL;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
+    {
+      tft.fillRect(spacing, y + i * (height + vspacing), width, height, TFT_CYAN);
+      tft.drawRect(spacing, y + i * (height + vspacing), width, height, TFT_WHITE);
+      tft.setCursor(spacing + 20, y + i * (height + vspacing) + 30);
+      tft.setTextColor(TFT_BLACK, TFT_CYAN);
+      tft.println(name[i]);
+    }
+    break;
+
+  case 2:
+    width = BUTTON_W_M;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
+    {
+      if (i % 2 == 0)
+      {
+        tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        tft.setCursor(spacing + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+      }
+      else if (i % 2 == 1)
+      {
+        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+        y = y + vspacing + height;
+      }
+    }
+    break;
+
+  case 3:
+    width = BUTTON_W_S;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
+    {
+      if (i % 3 == 0)
+      {
+        tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        tft.setCursor(spacing + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+      }
+      else if (i % 3 == 1)
+      {
+        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+      }
+      else if (i % 3 == 2)
+      {
+        tft.fillRect((2 * width) + (3 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect((2 * width) + (3 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor((2 * width) + (3 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+        y = y + vspacing + height;
+      }
+    }
+    break;
+
+  default:
+    break;
+  }
+
+  // if (buttoncount <= 6)
+  // {
+
+  // }
+  // else if (buttoncount <= 12)
+  // {
+  //   width = 120;
+  //   for(int i = 0; i < 2; i++)
+  //   {
+  //     if(i == 0)
+  //     {
+  //       tft.fillRect(x, y , width, height, TFT_CYAN);
+  //     tft.drawRect(x, y , width, height, TFT_WHITE);
+  //     tft.setCursor(x + 20, y + i * (height + spacing) + 30);
+  //     tft.setTextColor(TFT_BLACK, TFT_CYAN);
+  //     tft.println(name[i]);
+  //     }
+  //     else
+  //     {
+  //       tft.fillRect(x + width + spacing, y , width, height, TFT_CYAN);
+  //     tft.drawRect(x + width + spacing, y , width, height, TFT_WHITE);
+  //     tft.setCursor(x + 20, y + i * (height + spacing) + 30);
+  //     tft.setTextColor(TFT_BLACK, TFT_CYAN);
+  //     tft.println(name[i]);
+  //     }
+  //   }
+  //   for (int i = 2; i < buttoncount; i++)
+  //   {
+
+  //   }
+  // }
+  // else
+  // {
+  //   width = 80;
+  // }
+}
+int calculateWidth_m(int count, int bw)
+{
+  return round((float)((screen_width - (bw * count)) / (count + 1)));
 }
 void buttonselect(int y)
 {
   y = (y - 80) - y % 60;
   int index = y / 60;
-  if (index < 0)
-    index = 0;
-  else if (index <= 2)
+  if (index <= 2 && index >= 0)
   {
     pageint = index + 1;
     first = true;
@@ -228,7 +457,8 @@ void touch_calibrate()
   uint8_t calDataOK = 0;
 
   // check if calibration file exists and size is correct
-  if (SPIFFS.exists(CALIBRATION_FILE)) {
+  if (SPIFFS.exists(CALIBRATION_FILE))
+  {
     if (REPEAT_CAL)
     {
       // Delete if we want to re-calibrate
@@ -237,7 +467,8 @@ void touch_calibrate()
     else
     {
       File f = SPIFFS.open(CALIBRATION_FILE, "r");
-      if (f) {
+      if (f)
+      {
         if (f.readBytes((char *)calData, 14) == 14)
           calDataOK = 1;
         f.close();
@@ -245,10 +476,13 @@ void touch_calibrate()
     }
   }
 
-  if (calDataOK && !REPEAT_CAL) {
+  if (calDataOK && !REPEAT_CAL)
+  {
     // calibration data valid
     tft.setTouch(calData);
-  } else {
+  }
+  else
+  {
     // data not valid so recalibrate
     tft.fillScreen(TFT_BLACK);
     tft.setCursor(20, 0);
@@ -261,7 +495,8 @@ void touch_calibrate()
     tft.setTextFont(1);
     tft.println();
 
-    if (REPEAT_CAL) {
+    if (REPEAT_CAL)
+    {
       tft.setTextColor(TFT_RED, TFT_BLACK);
       tft.println("Set REPEAT_CAL to false to stop this running again!");
     }
@@ -273,7 +508,8 @@ void touch_calibrate()
 
     // store data
     File f = SPIFFS.open(CALIBRATION_FILE, "w");
-    if (f) {
+    if (f)
+    {
       f.write((const unsigned char *)calData, 14);
       f.close();
     }
