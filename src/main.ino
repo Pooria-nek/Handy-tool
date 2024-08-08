@@ -1,9 +1,20 @@
 #include <Arduino.h>
+#include "FS.h"
 #include <TFT_eSPI.h>
 #include <WiFi.h>
 
 #define pin 19
 TFT_eSPI tft = TFT_eSPI();
+
+// This is the file name used to store the calibration data
+// You can change this to create new calibration files.
+// The SPIFFS file name must start with "/".
+#define CALIBRATION_FILE "/TouchCalData"
+// Set REPEAT_CAL to true instead of false to run calibration
+// again, otherwise it will only be done once.
+// Repeat calibration if you change the screen rotation.
+#define REPEAT_CAL false
+
 int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
 String mainbuttonname[] = {"setting", "serial", "paint"};
@@ -17,18 +28,27 @@ void setup()
 {
   Serial.begin(115200);
   tft.init();
+
+  // check file system
+  if (!SPIFFS.begin())
+  {
+    Serial.println("formatting file system");
+
+    SPIFFS.format();
+    SPIFFS.begin();
+  }
+
+  touch_calibrate();
+
   pageint = 0;
   first = true;
-  // Calibrate the touch screen and retrieve the scaling factors
-  // touch_calibrate();
-  uint16_t calData[5] = {243, 3605, 176, 3636, 0};
-  tft.setTouch(calData);
 
   tft.setRotation(0);
   screen_width = tft.width();
   screen_hight = tft.height() - screen_header - screen_footer;
   tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
   tft.drawRect(0, screen_header, screen_width, screen_hight, TFT_WHITE);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK); // this code for background text colot
   tft.println("helllo");
 }
 
@@ -207,43 +227,55 @@ void touch_calibrate()
   uint16_t calData[5];
   uint8_t calDataOK = 0;
 
-  // Calibrate
-  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
-  tft.setCursor(20, 0);
-  tft.setTextFont(2);
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  tft.println("Touch corners as indicated");
-
-  tft.setTextFont(1);
-  tft.println();
-
-  tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 15);
-
-  Serial.println();
-  Serial.println();
-  Serial.println("// Use this calibration code in setup():");
-  Serial.print("  uint16_t calData[5] = ");
-  Serial.print("{ ");
-
-  for (uint8_t i = 0; i < 5; i++)
-  {
-    Serial.print(calData[i]);
-    if (i < 4)
-      Serial.print(", ");
+  // check if calibration file exists and size is correct
+  if (SPIFFS.exists(CALIBRATION_FILE)) {
+    if (REPEAT_CAL)
+    {
+      // Delete if we want to re-calibrate
+      SPIFFS.remove(CALIBRATION_FILE);
+    }
+    else
+    {
+      File f = SPIFFS.open(CALIBRATION_FILE, "r");
+      if (f) {
+        if (f.readBytes((char *)calData, 14) == 14)
+          calDataOK = 1;
+        f.close();
+      }
+    }
   }
 
-  Serial.println(" };");
-  Serial.print("  tft.setTouch(calData);");
-  Serial.println();
-  Serial.println();
+  if (calDataOK && !REPEAT_CAL) {
+    // calibration data valid
+    tft.setTouch(calData);
+  } else {
+    // data not valid so recalibrate
+    tft.fillScreen(TFT_BLACK);
+    tft.setCursor(20, 0);
+    tft.setTextFont(2);
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
 
-  tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.println("Touch corners as indicated");
 
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.println("Calibration complete!");
-  tft.println("Calibration code sent to Serial port.");
+    tft.setTextFont(1);
+    tft.println();
 
-  delay(4000);
+    if (REPEAT_CAL) {
+      tft.setTextColor(TFT_RED, TFT_BLACK);
+      tft.println("Set REPEAT_CAL to false to stop this running again!");
+    }
+
+    tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 15);
+
+    tft.setTextColor(TFT_GREEN, TFT_BLACK);
+    tft.println("Calibration complete!");
+
+    // store data
+    File f = SPIFFS.open(CALIBRATION_FILE, "w");
+    if (f) {
+      f.write((const unsigned char *)calData, 14);
+      f.close();
+    }
+  }
 }
