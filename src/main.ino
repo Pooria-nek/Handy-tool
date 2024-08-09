@@ -15,32 +15,71 @@ TFT_eSPI tft = TFT_eSPI();
 // Repeat calibration if you change the screen rotation.
 #define REPEAT_CAL false
 
+#define output1 35
+#define output2 34
+#define output3 39
+#define output4 36
+
+// #define input
+
 #define BUTTON_W_XL 250
 #define BUTTON_W_L 200
 #define BUTTON_W_M 120
 #define BUTTON_W_S 80
-#define BUTTON_W_xS 40
+#define BUTTON_W_xS 20
 
 #define BUTTON_H_XL 250
-#define BUTTON_H_L 200
-#define BUTTON_H_M 120
-#define BUTTON_H_S 80
-#define BUTTON_H_xS 40
+#define BUTTON_H_L 80
+#define BUTTON_H_M 60
+#define BUTTON_H_S 40
+#define BUTTON_H_xS 20
 
-int16_t button[][4] = {
-    {0, 0, 10, 10}};
+// Define the Button class
+class Button
+{
+public:
+  // Member variables
+  int x1;
+  int y1;
+  int x2;
+  int y2;
+
+  // Constructor to initialize the Button object
+  Button(int xVal, int yVal, int widthVal, int heightVal)
+  {
+    x1 = xVal;
+    y1 = yVal;
+    x2 = x1 + widthVal;
+    y2 = y1 + heightVal;
+  }
+
+  // Method to display the Button properties
+  void display()
+  {
+    Serial.print("Button Position: (");
+    Serial.print(x1);
+    Serial.print(", ");
+    Serial.print(y1);
+    Serial.print("), right: ");
+    Serial.print(x2);
+    Serial.print(", down: ");
+    Serial.println(y2);
+  }
+};
 
 int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
 String mainbuttonname[] = {"I/O", "Signal", "wifi", "bluetooth", "sub-G", "NFC", "GPS", "NRF24", "IR", "paint", "serial", "setting"};
 size_t mainbuttonname_s = sizeof(mainbuttonname) / sizeof(mainbuttonname[0]); // Calculate the number of colors
-String settingbuttonname[] = {"recollibrate"};
+String settingbuttonname[] = {"recollibrate", "reset"};
 size_t settingbuttonname_s = sizeof(settingbuttonname) / sizeof(settingbuttonname[0]);
+Button buttonlist[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+size_t buttonlist_s = 0;
 uint16_t colors[] = {TFT_YELLOW, TFT_ORANGE, TFT_RED, TFT_GREEN, TFT_DARKGREEN, TFT_CYAN, TFT_BLUE, TFT_DARKGREY, TFT_WHITE};
 int numColors = sizeof(colors) / sizeof(colors[0]); // Calculate the number of colors
 bool touch;
 bool first = false;
-bool renderbutton;
+bool renderexitbutton;
 int pageint;
 int timer;
 
@@ -82,19 +121,19 @@ void loop()
 {
   uint16_t x, y;
   touch = tft.getTouch(&x, &y, 10);
-  if (touch)
-  {
-    Serial.print(x);
-    Serial.print("_");
-    Serial.println(y);
-    Serial.println(pageint);
-  }
+  // if (touch)
+  // {
+  //   Serial.print(x);
+  //   Serial.print("_");
+  //   Serial.println(y);
+  //   Serial.println(pageint);
+  // }
   if (pageint != 0)
   {
-    if (renderbutton)
+    if (renderexitbutton)
     {
       tft.fillCircle(10, screen_header + 10, 7, TFT_RED);
-      renderbutton = false;
+      renderexitbutton = false;
     }
     else
     {
@@ -111,13 +150,17 @@ void loop()
   }
   else if (pageint == 1)
   {
+    page_i0(x, y);
+  }
+  else if (pageint == 10)
+  {
     page_paint(touch, x, y);
   }
-  else if (pageint == 2)
+  else if (pageint == 11)
   {
     page_serial(x, y);
   }
-  else if (pageint == 3)
+  else if (pageint == 12)
   {
     page_setting(x, y);
   }
@@ -129,36 +172,104 @@ void page_main(int x, int y)
   {
     tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
-    buttonplacer(mainbuttonname, mainbuttonname_s);
+    buttonplacer(mainbuttonname, mainbuttonname_s, false);
     first = false;
   }
   else
   {
-    if (touch && y > 40 && y < 460)
+    if (touch)
     {
-      if (x >= 60 && x <= 260)
+      int button = buttonselect(x, y);
+      if (button != 0)
       {
-        buttonselect(y);
+        pageint = button;
+        first = true;
       }
     }
   }
 }
+void page_i0(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
 
+    renderexitbutton = true;
+    tft.drawCircle(64, 60, 20, TFT_WHITE);
+    tft.drawCircle(128, 60, 20, TFT_WHITE);
+    tft.drawCircle(192, 60, 20, TFT_WHITE);
+    tft.drawCircle(256, 60, 20, TFT_WHITE);
+
+    pinMode(output1, INPUT_PULLDOWN);
+    pinMode(output2, INPUT_PULLDOWN);
+    pinMode(output3, INPUT_PULLDOWN);
+    pinMode(output4, INPUT_PULLDOWN);
+
+    first = false;
+  }
+  else
+  {
+    if (digitalRead(output1))
+    {
+      tft.fillCircle(64, 60, 15, TFT_RED);
+    }
+    else
+    {
+      tft.fillCircle(64, 60, 15, TFT_BLACK);
+    }
+    if (digitalRead(output2))
+    {
+      tft.fillCircle(128, 60, 15, TFT_RED);
+    }
+    else
+    {
+      tft.fillCircle(128, 60, 15, TFT_BLACK);
+    }
+    if (digitalRead(output3))
+    {
+      tft.fillCircle(192, 60, 15, TFT_RED);
+    }
+    else
+    {
+      tft.fillCircle(192, 60, 15, TFT_BLACK);
+    }
+    if (digitalRead(output4))
+    {
+      tft.fillCircle(256, 60, 15, TFT_RED);
+    }
+    else
+    {
+      tft.fillCircle(256, 60, 15, TFT_BLACK);
+    }
+  }
+}
 void page_setting(int x, int y)
 {
   if (first)
   {
     tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
-    buttonplacer(settingbuttonname, settingbuttonname_s);
+    buttonplacer(settingbuttonname, settingbuttonname_s, true);
     timer = millis();
     first = false;
-    renderbutton = true;
+    renderexitbutton = true;
   }
   else
   {
-    if (x > 60 && x < 260 && y > 80 && y < 140)
-      touch_calibrate();
+    if (touch)
+    {
+      int button = buttonselect(x, y);
+      if (button == 1)
+      {
+        SPIFFS.remove(CALIBRATION_FILE);
+        touch_calibrate();
+      }
+      else if (button == 2)
+      {
+        ESP.restart();
+      }
+    }
     if (millis() >= timer)
     {
       tft.setTextColor(TFT_WHITE, TFT_BLACK);
@@ -243,7 +354,7 @@ void page_serial(int x, int y)
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
 
     first = false;
-    renderbutton = true;
+    renderexitbutton = true;
   }
   else
   {
@@ -261,7 +372,7 @@ void page_paint(bool touch, int x, int y)
     color = colors[2];
 
     first = false;
-    renderbutton = true;
+    renderexitbutton = true;
   }
   else
   {
@@ -285,15 +396,19 @@ void page_paint(bool touch, int x, int y)
     }
   }
 }
-void buttonplacer(String name[], int buttoncount)
+void buttonplacer(String name[], int buttoncount, bool emptyspacebelow)
 {
+  for (int i = 0; i < buttonlist_s; i++)
+  {
+    buttonlist[i] = {0, 0, 0, 0};
+  }
+  buttonlist_s = 0;
   // int buttoncount = sizeof(name) / sizeof(name[0]);
   int width;
-  int height = 60;
-  int vspacing = 10;
+  int height;
+  int vspacing;
   int spacing;
-  int y = screen_header + vspacing;
-
+  int y = screen_header;
   // int buttoncount = 11;
   int c;
   if (buttoncount <= 6)
@@ -311,37 +426,53 @@ void buttonplacer(String name[], int buttoncount)
   {
   case 1:
     width = BUTTON_W_XL;
+    height = BUTTON_H_M;
     spacing = calculateWidth_m(c, width);
+    if (emptyspacebelow)
+    {
+      vspacing = 10;
+    }
+    else
+    {
+      vspacing = calculateheight_m(buttoncount, height);
+    }
+    y += vspacing;
     for (int i = 0; i < buttoncount; i++)
     {
-      tft.fillRect(spacing, y + i * (height + vspacing), width, height, TFT_CYAN);
-      tft.drawRect(spacing, y + i * (height + vspacing), width, height, TFT_WHITE);
-      tft.setCursor(spacing + 20, y + i * (height + vspacing) + 30);
-      tft.setTextColor(TFT_BLACK, TFT_CYAN);
-      tft.println(name[i]);
+      // tft.fillRect(spacing, y + i * (height + vspacing), width, height, TFT_CYAN);
+      // tft.drawRect(spacing, y + i * (height + vspacing), width, height, TFT_WHITE);
+      // tft.setCursor(spacing + 20, y + i * (height + vspacing) + 30);
+      // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+      // tft.println(name[i]);
+      makebutton(spacing, y + (i * (height + vspacing)), width, height, name[i], i);
     }
     break;
 
   case 2:
     width = BUTTON_W_M;
+    height = BUTTON_H_S;
     spacing = calculateWidth_m(c, width);
+    vspacing = calculateheight_m(6, height);
+    y += vspacing;
     for (int i = 0; i < buttoncount; i++)
     {
       if (i % 2 == 0)
       {
-        tft.fillRect(spacing, y, width, height, TFT_CYAN);
-        tft.drawRect(spacing, y, width, height, TFT_WHITE);
-        tft.setCursor(spacing + 20, y + 30);
-        tft.setTextColor(TFT_BLACK, TFT_CYAN);
-        tft.println(name[i]);
+        // tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        // tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        // tft.setCursor(spacing + 20, y + 30);
+        // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        // tft.println(name[i]);
+        makebutton(spacing, y, width, height, name[i], i);
       }
       else if (i % 2 == 1)
       {
-        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
-        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
-        tft.setCursor(width + (2 * spacing) + 20, y + 30);
-        tft.setTextColor(TFT_BLACK, TFT_CYAN);
-        tft.println(name[i]);
+        // tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        // tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        // tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        // tft.println(name[i]);
+        makebutton(width + (2 * spacing), y, width, height, name[i], i);
         y = y + vspacing + height;
       }
     }
@@ -349,32 +480,38 @@ void buttonplacer(String name[], int buttoncount)
 
   case 3:
     width = BUTTON_W_S;
+    height = BUTTON_H_S;
     spacing = calculateWidth_m(c, width);
+    vspacing = calculateheight_m(6, height);
+    y += vspacing;
     for (int i = 0; i < buttoncount; i++)
     {
       if (i % 3 == 0)
       {
-        tft.fillRect(spacing, y, width, height, TFT_CYAN);
-        tft.drawRect(spacing, y, width, height, TFT_WHITE);
-        tft.setCursor(spacing + 20, y + 30);
-        tft.setTextColor(TFT_BLACK, TFT_CYAN);
-        tft.println(name[i]);
+        // tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        // tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        // tft.setCursor(spacing + 20, y + 30);
+        // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        // tft.println(name[i]);
+        makebutton(spacing, y, width, height, name[i], i);
       }
       else if (i % 3 == 1)
       {
-        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
-        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
-        tft.setCursor(width + (2 * spacing) + 20, y + 30);
-        tft.setTextColor(TFT_BLACK, TFT_CYAN);
-        tft.println(name[i]);
+        // tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        // tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        // tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        // tft.println(name[i]);
+        makebutton(width + (2 * spacing), y, width, height, name[i], i);
       }
       else if (i % 3 == 2)
       {
-        tft.fillRect((2 * width) + (3 * spacing), y, width, height, TFT_CYAN);
-        tft.drawRect((2 * width) + (3 * spacing), y, width, height, TFT_WHITE);
-        tft.setCursor((2 * width) + (3 * spacing) + 20, y + 30);
-        tft.setTextColor(TFT_BLACK, TFT_CYAN);
-        tft.println(name[i]);
+        // tft.fillRect((2 * width) + (3 * spacing), y, width, height, TFT_CYAN);
+        // tft.drawRect((2 * width) + (3 * spacing), y, width, height, TFT_WHITE);
+        // tft.setCursor((2 * width) + (3 * spacing) + 20, y + 30);
+        // tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        // tft.println(name[i]);
+        makebutton((2 * width) + (3 * spacing), y, width, height, name[i], i);
         y = y + vspacing + height;
       }
     }
@@ -419,19 +556,41 @@ void buttonplacer(String name[], int buttoncount)
   //   width = 80;
   // }
 }
+void makebutton(int x, int y, int width, int height, String name, int i)
+{
+  tft.fillRect(x, y, width, height, TFT_CYAN);
+  tft.drawRect(x, y, width, height, TFT_WHITE);
+  tft.setCursor(x + 20, y + (height / 2));
+  tft.setTextColor(TFT_BLACK, TFT_CYAN);
+  tft.println(name);
+  buttonlist[i] = {x, y, width, height};
+  buttonlist_s += 1;
+}
 int calculateWidth_m(int count, int bw)
 {
   return round((float)((screen_width - (bw * count)) / (count + 1)));
 }
-void buttonselect(int y)
+int calculateheight_m(int count, int bh)
 {
-  y = (y - 80) - y % 60;
-  int index = y / 60;
-  if (index <= 2 && index >= 0)
+  return round((float)(((screen_hight - screen_footer - screen_header) - (bh * count)) / (count + 1)));
+}
+int buttonselect(int x, int y)
+{
+  for (int i = 0; i < buttonlist_s; i++)
   {
-    pageint = index + 1;
-    first = true;
+    if (x != 0 && y != 0 && x > buttonlist[i].x1 && x < buttonlist[i].x2 && y > buttonlist[i].y1 && y < buttonlist[i].y2)
+    {
+      return i + 1;
+      break;
+    }
   }
+  // y = (y - 80) - y % 60;
+  // int index = y / 60;
+  // if (index <= 2 && index >= 0)
+  // {
+  //   pageint = index + 1;
+  //   first = true;
+  // }
 }
 void drawPalette(uint16_t colors[], int numColors)
 {
@@ -517,5 +676,6 @@ void touch_calibrate()
       f.write((const unsigned char *)calData, 14);
       f.close();
     }
+    first = true;
   }
 }
