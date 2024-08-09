@@ -27,9 +27,12 @@ TFT_eSPI tft = TFT_eSPI();
 #define BUTTON_H_S 80
 #define BUTTON_H_xS 40
 
+int16_t button[][4] = {
+    {0, 0, 10, 10}};
+
 int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
-String mainbuttonname[] = {"I/O", "Signal", "wifi", "bluetooth", "sub-G", "NFC", "NRF24", "IR", "paint", "serial", "setting"};
+String mainbuttonname[] = {"I/O", "Signal", "wifi", "bluetooth", "sub-G", "NFC", "GPS", "NRF24", "IR", "paint", "serial", "setting"};
 size_t mainbuttonname_s = sizeof(mainbuttonname) / sizeof(mainbuttonname[0]); // Calculate the number of colors
 String settingbuttonname[] = {"recollibrate"};
 size_t settingbuttonname_s = sizeof(settingbuttonname) / sizeof(settingbuttonname[0]);
@@ -53,6 +56,12 @@ void setup()
 
     SPIFFS.format();
     SPIFFS.begin();
+  }
+
+  if (REPEAT_CAL)
+  {
+    // Delete if we want to re-calibrate
+    SPIFFS.remove(CALIBRATION_FILE);
   }
 
   touch_calibrate();
@@ -284,7 +293,7 @@ void buttonplacer(String name[], int buttoncount)
   int vspacing = 10;
   int spacing;
   int y = screen_header + vspacing;
-  
+
   // int buttoncount = 11;
   int c;
   if (buttoncount <= 6)
@@ -298,82 +307,82 @@ void buttonplacer(String name[], int buttoncount)
   else if (buttoncount <= 18)
     c = 3;
 
-        switch (c)
+  switch (c)
+  {
+  case 1:
+    width = BUTTON_W_XL;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
     {
-    case 1:
-      width = BUTTON_W_XL;
-      spacing = calculateWidth_m(c, width);
-      for (int i = 0; i < buttoncount; i++)
+      tft.fillRect(spacing, y + i * (height + vspacing), width, height, TFT_CYAN);
+      tft.drawRect(spacing, y + i * (height + vspacing), width, height, TFT_WHITE);
+      tft.setCursor(spacing + 20, y + i * (height + vspacing) + 30);
+      tft.setTextColor(TFT_BLACK, TFT_CYAN);
+      tft.println(name[i]);
+    }
+    break;
+
+  case 2:
+    width = BUTTON_W_M;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
+    {
+      if (i % 2 == 0)
       {
-        tft.fillRect(spacing, y + i * (height + vspacing), width, height, TFT_CYAN);
-        tft.drawRect(spacing, y + i * (height + vspacing), width, height, TFT_WHITE);
-        tft.setCursor(spacing + 20, y + i * (height + vspacing) + 30);
+        tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        tft.setCursor(spacing + 20, y + 30);
         tft.setTextColor(TFT_BLACK, TFT_CYAN);
         tft.println(name[i]);
       }
-      break;
-
-    case 2:
-      width = BUTTON_W_M;
-      spacing = calculateWidth_m(c, width);
-      for (int i = 0; i < buttoncount; i++)
+      else if (i % 2 == 1)
       {
-        if (i % 2 == 0)
-        {
-          tft.fillRect(spacing, y, width, height, TFT_CYAN);
-          tft.drawRect(spacing, y, width, height, TFT_WHITE);
-          tft.setCursor(spacing + 20, y + 30);
-          tft.setTextColor(TFT_BLACK, TFT_CYAN);
-          tft.println(name[i]);
-        }
-        else if (i % 2 == 1)
-        {
-          tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
-          tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
-          tft.setCursor(width + (2 * spacing) + 20, y + 30);
-          tft.setTextColor(TFT_BLACK, TFT_CYAN);
-          tft.println(name[i]);
-          y = y + vspacing + height;
-        }
+        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+        y = y + vspacing + height;
       }
-      break;
-
-    case 3:
-      width = BUTTON_W_S;
-      spacing = calculateWidth_m(c, width);
-      for (int i = 0; i < buttoncount; i++)
-      {
-        if (i % 3 == 0)
-        {
-          tft.fillRect(spacing, y, width, height, TFT_CYAN);
-          tft.drawRect(spacing, y, width, height, TFT_WHITE);
-          tft.setCursor(spacing + 20, y + 30);
-          tft.setTextColor(TFT_BLACK, TFT_CYAN);
-          tft.println(name[i]);
-        }
-        else if (i % 3 == 1)
-        {
-          tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
-          tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
-          tft.setCursor(width + (2 * spacing) + 20, y + 30);
-          tft.setTextColor(TFT_BLACK, TFT_CYAN);
-          tft.println(name[i]);
-        }
-        else if (i % 3 == 2)
-        {
-          tft.fillRect((2 * width) + (3 * spacing), y, width, height, TFT_CYAN);
-          tft.drawRect((2 * width) + (3 * spacing), y, width, height, TFT_WHITE);
-          tft.setCursor((2 * width) + (3 * spacing) + 20, y + 30);
-          tft.setTextColor(TFT_BLACK, TFT_CYAN);
-          tft.println(name[i]);
-          y = y + vspacing + height;
-        }
-      }
-      break;
-
-    default:
-      break;
     }
+    break;
+
+  case 3:
+    width = BUTTON_W_S;
+    spacing = calculateWidth_m(c, width);
+    for (int i = 0; i < buttoncount; i++)
+    {
+      if (i % 3 == 0)
+      {
+        tft.fillRect(spacing, y, width, height, TFT_CYAN);
+        tft.drawRect(spacing, y, width, height, TFT_WHITE);
+        tft.setCursor(spacing + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+      }
+      else if (i % 3 == 1)
+      {
+        tft.fillRect(width + (2 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect(width + (2 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor(width + (2 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+      }
+      else if (i % 3 == 2)
+      {
+        tft.fillRect((2 * width) + (3 * spacing), y, width, height, TFT_CYAN);
+        tft.drawRect((2 * width) + (3 * spacing), y, width, height, TFT_WHITE);
+        tft.setCursor((2 * width) + (3 * spacing) + 20, y + 30);
+        tft.setTextColor(TFT_BLACK, TFT_CYAN);
+        tft.println(name[i]);
+        y = y + vspacing + height;
+      }
+    }
+    break;
+
+  default:
+    break;
+  }
   // if (buttoncount <= 6)
   // {
 
@@ -462,20 +471,12 @@ void touch_calibrate()
   // check if calibration file exists and size is correct
   if (SPIFFS.exists(CALIBRATION_FILE))
   {
-    if (REPEAT_CAL)
+    File f = SPIFFS.open(CALIBRATION_FILE, "r");
+    if (f)
     {
-      // Delete if we want to re-calibrate
-      SPIFFS.remove(CALIBRATION_FILE);
-    }
-    else
-    {
-      File f = SPIFFS.open(CALIBRATION_FILE, "r");
-      if (f)
-      {
-        if (f.readBytes((char *)calData, 14) == 14)
-          calDataOK = 1;
-        f.close();
-      }
+      if (f.readBytes((char *)calData, 14) == 14)
+        calDataOK = 1;
+      f.close();
     }
   }
 
