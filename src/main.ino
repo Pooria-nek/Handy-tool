@@ -15,12 +15,19 @@ TFT_eSPI tft = TFT_eSPI();
 // Repeat calibration if you change the screen rotation.
 #define REPEAT_CAL false
 
-#define output1 35
-#define output2 34
-#define output3 39
-#define output4 36
-
-// #define input
+#define input1 35
+#define input2 34
+#define input3 39
+#define input4 36
+#define output1 26
+#define output2 25
+#define output3 15
+#define output4 4
+#define output5 5
+#define output6 18
+#define output7 19
+#define output8 23
+// #define output
 
 #define BUTTON_W_XL 250
 #define BUTTON_W_L 200
@@ -196,51 +203,217 @@ void page_i0(int x, int y)
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
 
     renderexitbutton = true;
-    tft.drawCircle(64, 60, 20, TFT_WHITE);
-    tft.drawCircle(128, 60, 20, TFT_WHITE);
-    tft.drawCircle(192, 60, 20, TFT_WHITE);
-    tft.drawCircle(256, 60, 20, TFT_WHITE);
+    for (int i = 0; i < 18; i++)
+    {
+      buttonlist[i] = {0, 0, 0, 0};
+    }
+    buttonlist_s = 0;
+    int x = 64;
+    int y = 40 + screen_header;
+    for (int i = 0; i < 12; i++)
+    {
+      if (i < 4)
+      {
+        tft.drawCircle(x + (i * x), y, 20, TFT_WHITE);
+      }
+      else if (i < 8)
+      {
+        tft.setCursor(x + ((i - 4) * x) - 25, y + 30);
+        tft.fillRect(x + ((i - 4) * x) - 20, y + 40, 40, 40, TFT_BLUE);
+        tft.print("pin : ");
+        buttonlist[i - 4] = {((i - 4) * x) - 20, y + 40, 40, 40};
+        buttonlist_s += 1;
+        if (i == 4)
+        {
+          tft.print(output1);
+        }
+        else if (i == 5)
+        {
+          tft.print(output2);
+        }
+        else if (i == 6)
+        {
+          tft.print(output3);
+        }
+        else if (i == 7)
+        {
+          tft.print(output4);
+        }
+      }
+      else if (i < 12)
+      {
+        tft.setCursor(x + ((i - 8) * x) - 25, y + 90);
+        tft.fillRect(x + ((i - 8) * x) - 20, y + 100, 40, 40, TFT_BLUE);
+        buttonlist[i - 4] = {x + ((i - 8) * x) - 20, y + 100, 40, 40};
+        buttonlist_s += 1;
+        tft.print("pin : ");
+        if (i == 8)
+        {
+          tft.print(output5);
+        }
+        else if (i == 9)
+        {
+          tft.print(output6);
+        }
+        else if (i == 10)
+        {
+          tft.print(output7);
+        }
+        else if (i == 11)
+        {
+          tft.print(output8);
+        }
+      }
+    }
 
-    pinMode(output1, INPUT_PULLDOWN);
-    pinMode(output2, INPUT_PULLDOWN);
-    pinMode(output3, INPUT_PULLDOWN);
-    pinMode(output4, INPUT_PULLDOWN);
+    pinMode(input1, INPUT_PULLDOWN);
+    pinMode(input2, INPUT_PULLDOWN);
+    pinMode(input3, INPUT_PULLDOWN);
+    pinMode(input4, INPUT_PULLDOWN);
+    pinMode(output1, OUTPUT);
+    pinMode(output2, OUTPUT);
+    pinMode(output3, OUTPUT);
+    pinMode(output4, OUTPUT);
+    pinMode(output5, OUTPUT);
+    pinMode(output6, OUTPUT);
+    pinMode(output7, OUTPUT);
+    pinMode(output8, OUTPUT);
 
     first = false;
   }
   else
   {
-    if (digitalRead(output1))
+    if (touch)
     {
-      tft.fillCircle(64, 60, 15, TFT_RED);
+      int button = buttonselect(x, y);
+      if (button == 1)
+      {
+        if (!digitalRead(output1))
+        {
+          tft.fillRect(buttonlist[0].x1, buttonlist[0].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[0].x1, buttonlist[0].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output1, !digitalRead(output1));
+      }
+      if (button == 2)
+      {
+        if (!digitalRead(output2))
+        {
+          tft.fillRect(buttonlist[1].x1, buttonlist[0].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[1].x1, buttonlist[0].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output2, !digitalRead(output2));
+      }
+      if (button == 3)
+      {
+        if (!digitalRead(output3))
+        {
+          tft.fillRect(buttonlist[2].x1, buttonlist[2].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[2].x1, buttonlist[2].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output3, !digitalRead(output3));
+      }
+      if (button == 4)
+      {
+        if (!digitalRead(output4))
+        {
+          tft.fillRect(buttonlist[3].x1, buttonlist[3].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[3].x1, buttonlist[3].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output4, !digitalRead(output4));
+      }
+      if (button == 5)
+      {
+        if (!digitalRead(output5))
+        {
+          tft.fillRect(buttonlist[4].x1, buttonlist[4].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[4].x1, buttonlist[4].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output5, !digitalRead(output5));
+      }
+      if (button == 6)
+      {
+        if (!digitalRead(output6))
+        {
+          tft.fillRect(buttonlist[5].x1, buttonlist[5].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[5].x1, buttonlist[5].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output6, !digitalRead(output6));
+      }
+      if (button == 7)
+      {
+        if (!digitalRead(output7))
+        {
+          tft.fillRect(buttonlist[6].x1, buttonlist[6].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[6].x1, buttonlist[6].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output7, !digitalRead(output7));
+      }
+      if (button == 8)
+      {
+        if (!digitalRead(output8))
+        {
+          tft.fillRect(buttonlist[7].x1, buttonlist[7].y1, 40, 40, TFT_CYAN);
+        }
+        else
+        {
+          tft.fillRect(buttonlist[7].x1, buttonlist[7].y1, 40, 40, TFT_BLUE);
+        }
+        digitalWrite(output8, !digitalRead(output8));
+      }
+    }
+    if (digitalRead(input1))
+    {
+      tft.fillCircle(64, 80, 15, TFT_RED);
     }
     else
     {
-      tft.fillCircle(64, 60, 15, TFT_BLACK);
+      tft.fillCircle(64, 80, 15, TFT_BLACK);
     }
-    if (digitalRead(output2))
+    if (digitalRead(input2))
     {
-      tft.fillCircle(128, 60, 15, TFT_RED);
-    }
-    else
-    {
-      tft.fillCircle(128, 60, 15, TFT_BLACK);
-    }
-    if (digitalRead(output3))
-    {
-      tft.fillCircle(192, 60, 15, TFT_RED);
+      tft.fillCircle(128, 80, 15, TFT_RED);
     }
     else
     {
-      tft.fillCircle(192, 60, 15, TFT_BLACK);
+      tft.fillCircle(128, 80, 15, TFT_BLACK);
     }
-    if (digitalRead(output4))
+    if (digitalRead(input3))
     {
-      tft.fillCircle(256, 60, 15, TFT_RED);
+      tft.fillCircle(192, 80, 15, TFT_RED);
     }
     else
     {
-      tft.fillCircle(256, 60, 15, TFT_BLACK);
+      tft.fillCircle(192, 80, 15, TFT_BLACK);
+    }
+    if (digitalRead(input4))
+    {
+      tft.fillCircle(256, 80, 15, TFT_RED);
+    }
+    else
+    {
+      tft.fillCircle(256, 80, 15, TFT_BLACK);
     }
   }
 }
@@ -398,6 +571,7 @@ void page_paint(bool touch, int x, int y)
 }
 void buttonplacer(String name[], int buttoncount, bool emptyspacebelow)
 {
+  // empty button list
   for (int i = 0; i < buttonlist_s; i++)
   {
     buttonlist[i] = {0, 0, 0, 0};
