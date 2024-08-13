@@ -2,6 +2,7 @@
 #include "FS.h"
 #include <TFT_eSPI.h>
 #include <WiFi.h>
+// #include <BlueToothSerial.h>
 
 #define pin 19
 TFT_eSPI tft = TFT_eSPI();
@@ -77,9 +78,11 @@ public:
 int16_t screen_width, screen_hight, screen_header = 40, screen_footer = 20;
 uint32_t color;
 String mainbuttonname[] = {"I/O", "Signal", "wifi", "bluetooth", "sub-G", "NFC", "GPS", "NRF24", "IR", "paint", "serial", "setting"};
-size_t mainbuttonname_s = sizeof(mainbuttonname) / sizeof(mainbuttonname[0]); // Calculate the number of colors
+size_t mainbuttonname_s = sizeof(mainbuttonname) / sizeof(mainbuttonname[0]); // Calculate the number of buttons
 String settingbuttonname[] = {"recollibrate", "reset"};
 size_t settingbuttonname_s = sizeof(settingbuttonname) / sizeof(settingbuttonname[0]);
+String bluetoothbuttonname[] = {"btserial"};
+size_t bluetoothbuttonname_s = sizeof(bluetoothbuttonname) / sizeof(bluetoothbuttonname[0]);
 Button buttonlist[] = {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
 size_t buttonlist_s = 0;
 String lines[20];
@@ -91,7 +94,9 @@ bool touch;
 bool first = false;
 bool renderexitbutton;
 int pageint;
+int subpageint;
 int timer;
+// BluetoothSerial serialbt;
 
 void setup()
 {
@@ -138,17 +143,24 @@ void loop()
   //   Serial.println(y);
   //   Serial.println(pageint);
   // }
-  if (pageint != 0)
+  if (pageint > 0)
   {
     if (renderexitbutton)
     {
       tft.fillCircle(10, screen_header + 10, 7, TFT_RED);
       renderexitbutton = false;
     }
-    else if (x < 20 && y > screen_header && y < screen_header + 20)
+    if (pageint != 0 && touch && x < 20 && y > screen_header && y < screen_header + 20)
     {
+      if (subpageint == 0)
+      {
+        pageint = 0;
+      }
+      else
+      {
+        subpageint = 0;
+      }
       first = true;
-      pageint = 0;
     }
   }
   if (pageint == 0)
@@ -158,6 +170,45 @@ void loop()
   else if (pageint == 1)
   {
     page_i0(x, y);
+  }
+  else if (pageint == 2)
+  {
+    pageint = 0;
+  }
+  else if (pageint == 3)
+  {
+    page_wifi(x, y);
+  }
+  else if (pageint == 4)
+  {
+    if (subpageint == 0)
+    {
+      page_bluetooth(x, y);
+    }
+    else if (subpageint == 1)
+    {
+      page_bluetoothserial(x, y);
+    }
+  }
+  else if (pageint == 5)
+  {
+    pageint = 0;
+  }
+  else if (pageint == 6)
+  {
+    pageint = 0;
+  }
+  else if (pageint == 7)
+  {
+    pageint = 0;
+  }
+  else if (pageint == 8)
+  {
+    pageint = 0;
+  }
+  else if (pageint == 9)
+  {
+    pageint = 0;
   }
   else if (pageint == 10)
   {
@@ -187,7 +238,7 @@ void page_main(int x, int y)
     if (touch)
     {
       int button = buttonselect(x, y);
-      if (button != 0)
+      if (button > 0)
       {
         pageint = button;
         first = true;
@@ -402,7 +453,7 @@ void page_i0(int x, int y)
     {
       delay(10);
       if (digitalRead(input1))
-      tft.fillCircle(128, 80, 15, TFT_RED);
+        tft.fillCircle(128, 80, 15, TFT_RED);
     }
     else
     {
@@ -412,7 +463,7 @@ void page_i0(int x, int y)
     {
       delay(10);
       if (digitalRead(input1))
-      tft.fillCircle(192, 80, 15, TFT_RED);
+        tft.fillCircle(192, 80, 15, TFT_RED);
     }
     else
     {
@@ -422,12 +473,174 @@ void page_i0(int x, int y)
     {
       delay(10);
       if (digitalRead(input1))
-      tft.fillCircle(256, 80, 15, TFT_RED);
+        tft.fillCircle(256, 80, 15, TFT_RED);
     }
     else
     {
       tft.fillCircle(256, 80, 15, TFT_BLACK);
     }
+  }
+}
+void page_wifi(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    tft.setCursor(60, screen_header + 40);
+    tft.textsize = 8;
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.print("wifi");
+    tft.textsize = 1;
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+    int timer = millis();
+
+    renderexitbutton = true;
+    first = false;
+  }
+  else
+  {
+    if (millis() >= timer)
+    {
+      tft.fillRect(0, screen_header + 100, 320, (480 - 100 - screen_footer) - screen_header, TFT_BLACK);
+      tft.setCursor(10, screen_header + 100);
+      int n = WiFi.scanNetworks();
+      if (n == 0)
+      {
+        Serial.print("no network found");
+        tft.println("no network found");
+      }
+      else if (n > 0)
+      {
+        Serial.print(n);
+        Serial.println(" network found");
+        tft.print(n);
+        tft.println(" network found");
+        for (int i = 0; i < n; i++)
+        {
+          Serial.print(i + 1);
+          Serial.print(" ");
+          Serial.println(WiFi.SSID(i).c_str());
+          tft.print(i + 1);
+          tft.print(" ");
+          tft.println(WiFi.SSID(i).c_str());
+        }
+        WiFi.scanDelete();
+        timer = millis() + 5000;
+      }
+      else
+      {
+        Serial.print("error ");
+        Serial.println(n);
+        tft.print("error ");
+        tft.println(n);
+      }
+    }
+  }
+}
+void page_bluetooth(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    buttonplacer(bluetoothbuttonname, bluetoothbuttonname_s, false);
+
+    renderexitbutton = true;
+    first = false;
+  }
+  else
+  {
+    if (touch)
+    {
+      int button = buttonselect(x, y);
+      if (button == 1)
+      {
+        first = true;
+        subpageint = button;
+      }
+    }
+  }
+}
+void page_bluetoothserial(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    for (int i = 0; i < 18; i++)
+    {
+      buttonlist[i] = {0, 0, 0, 0};
+    }
+    buttonlist_s = 0;
+    int x = 64;
+    int y = 440 - screen_footer;
+    for (int i = 0; i < 4; i++)
+    {
+      tft.fillRect(x + (x * i) - 20, y, 40, 40, TFT_DARKCYAN);
+      tft.setCursor(x + (x * i), y + 20);
+      tft.print(i + 1);
+      buttonlist[i] = {x + (x * i) - 20, y, 40, 40};
+      buttonlist_s += 1;
+    }
+    for (int i = 0; i < 20; i++)
+    {
+      lines[i] = "";
+      lineid[i] = 0;
+    }
+    tft.setCursor(60, screen_header + 40);
+    tft.textsize = 8;
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.print("btserial");
+    tft.textsize = 1;
+    // serialbt.begin("esp32_handytool");
+
+    renderexitbutton = true;
+    first = false;
+  }
+  else
+  {
+    if (lines_s == 19)
+    {
+      for (int i = 0; i < 19; i++)
+      {
+        if (i <= 18)
+        {
+          lines[i] = lines[i + 1];
+          lineid[i] = lineid[i + 1];
+        }
+      }
+      lines_s = 18;
+    }
+    if (touch)
+    {
+      int button = buttonselect(x, y);
+      if (millis() >= timer)
+      {
+        timer = millis() + 1000;
+        if (button == 1)
+        {
+          writescreen("hi", 1, 2);
+        }
+        else if (button == 2)
+        {
+          writescreen("bye", 1, 2);
+        }
+        else if (button == 3)
+        {
+          writescreen("something", 1, 2);
+        }
+        else if (button == 4)
+        {
+          writescreen("another thing", 1, 2);
+        }
+      }
+    }
+    // if (serialbt.available())
+    // {
+    //   writescreen(serialbt.readStringUntil('\n'), 2, 2);
+    // }
   }
 }
 void page_setting(int x, int y)
@@ -553,6 +766,12 @@ void page_serial(int x, int y)
       buttonlist[i] = {x + (x * i) - 20, y, 40, 40};
       buttonlist_s += 1;
     }
+    for (int i = 0; i < 20; i++)
+    {
+      lines[i] = "";
+      lineid[i] = 0;
+    }
+    lines_s = 0;
     tft.setCursor(0, 20 + screen_header);
     int timer = millis() + 1000;
     renderexitbutton = true;
@@ -580,25 +799,25 @@ void page_serial(int x, int y)
         timer = millis() + 1000;
         if (button == 1)
         {
-          writescreen("hi", 1);
+          writescreen("hi", 1, 1);
         }
         else if (button == 2)
         {
-          writescreen("bye", 1);
+          writescreen("bye", 1, 1);
         }
         else if (button == 3)
         {
-          writescreen("something", 1);
+          writescreen("something", 1, 1);
         }
         else if (button == 4)
         {
-          writescreen("another thing", 1);
+          writescreen("another thing", 1, 1);
         }
       }
     }
     if (Serial.available())
     {
-      writescreen(Serial.readStringUntil('\n'), 2);
+      writescreen(Serial.readStringUntil('\n'), 2, 1);
     }
   }
 }
@@ -637,7 +856,7 @@ void page_paint(bool touch, int x, int y)
     }
   }
 }
-void writescreen(String text, int id)
+void writescreen(String text, int id, int writeplace)
 {
   Serial.println(text);
   lines[lines_s] = text;
@@ -654,6 +873,14 @@ void writescreen(String text, int id)
     else if (lineid[i] == 2)
     {
       tft.setTextColor(TFT_BLUE);
+    }
+    if (writeplace == 1)
+    {
+      Serial.println(lines[i]);
+    }
+    else if (writeplace == 2)
+    {
+      // serialbt.println(lines[i]);
     }
     tft.print("   ");
     tft.println(lines[i]);
@@ -784,41 +1011,6 @@ void buttonplacer(String name[], int buttoncount, bool emptyspacebelow)
   default:
     break;
   }
-  // if (buttoncount <= 6)
-  // {
-
-  // }
-  // else if (buttoncount <= 12)
-  // {
-  //   width = 120;
-  //   for(int i = 0; i < 2; i++)
-  //   {
-  //     if(i == 0)
-  //     {
-  //       tft.fillRect(x, y , width, height, TFT_CYAN);
-  //     tft.drawRect(x, y , width, height, TFT_WHITE);
-  //     tft.setCursor(x + 20, y + i * (height + spacing) + 30);
-  //     tft.setTextColor(TFT_BLACK, TFT_CYAN);
-  //     tft.println(name[i]);
-  //     }
-  //     else
-  //     {
-  //       tft.fillRect(x + width + spacing, y , width, height, TFT_CYAN);
-  //     tft.drawRect(x + width + spacing, y , width, height, TFT_WHITE);
-  //     tft.setCursor(x + 20, y + i * (height + spacing) + 30);
-  //     tft.setTextColor(TFT_BLACK, TFT_CYAN);
-  //     tft.println(name[i]);
-  //     }
-  //   }
-  //   for (int i = 2; i < buttoncount; i++)
-  //   {
-
-  //   }
-  // }
-  // else
-  // {
-  //   width = 80;
-  // }
 }
 void makebutton(int x, int y, int width, int height, String name, int i)
 {
@@ -848,13 +1040,6 @@ int buttonselect(int x, int y)
       break;
     }
   }
-  // y = (y - 80) - y % 60;
-  // int index = y / 60;
-  // if (index <= 2 && index >= 0)
-  // {
-  //   pageint = index + 1;
-  //   first = true;
-  // }
 }
 void drawPalette(uint16_t colors[], int numColors)
 {
