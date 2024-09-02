@@ -2,6 +2,8 @@
 #include "FS.h"
 #include <TFT_eSPI.h>
 #include <WiFi.h>
+#include <Adafruit_PN532.h>
+#include <TinyGPS++.h>
 // #include <BlueToothSerial.h>
 
 #define pin 19
@@ -15,6 +17,9 @@ TFT_eSPI tft = TFT_eSPI();
 // again, otherwise it will only be done once.
 // Repeat calibration if you change the screen rotation.
 #define REPEAT_CAL false
+
+#define rx2 16
+#define tx2 17
 
 #define input1 35
 #define input2 34
@@ -96,6 +101,9 @@ bool renderexitbutton;
 int pageint;
 int subpageint;
 int timer;
+TinyGPSPlus gps;
+HardwareSerial neogps(2);
+Adafruit_PN532 nfc(21, 22);
 // BluetoothSerial serialbt;
 
 void setup()
@@ -143,14 +151,14 @@ void loop()
   //   Serial.println(y);
   //   Serial.println(pageint);
   // }
-  if (pageint > 0)
+  if (pageint != 0)
   {
     if (renderexitbutton)
     {
       tft.fillCircle(10, screen_header + 10, 7, TFT_RED);
       renderexitbutton = false;
     }
-    if (pageint != 0 && touch && x < 20 && y > screen_header && y < screen_header + 20)
+    if (x < 20 && y > screen_header && y < screen_header + 20)
     {
       if (subpageint == 0)
       {
@@ -174,6 +182,7 @@ void loop()
   else if (pageint == 2)
   {
     pageint = 0;
+    first = false;
   }
   else if (pageint == 3)
   {
@@ -193,22 +202,25 @@ void loop()
   else if (pageint == 5)
   {
     pageint = 0;
+    first = false;
   }
   else if (pageint == 6)
   {
-    pageint = 0;
+    page_NFC(x, y);
   }
   else if (pageint == 7)
   {
-    pageint = 0;
+    page_GPS(x, y);
   }
   else if (pageint == 8)
   {
     pageint = 0;
+    first = false;
   }
   else if (pageint == 9)
   {
     pageint = 0;
+    first = false;
   }
   else if (pageint == 10)
   {
@@ -230,6 +242,7 @@ void page_main(int x, int y)
   {
     tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
     tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    // neogps.end();
     buttonplacer(mainbuttonname, mainbuttonname_s, false);
     first = false;
   }
@@ -439,11 +452,19 @@ void page_i0(int x, int y)
         }
       }
     }
+    // tft.fillRect(44, 50, 40, 10, TFT_BLACK);
+    // tft.fillRect(108, 50, 40, 10, TFT_BLACK);
+    // tft.fillRect(172, 50, 40, 10, TFT_BLACK);
+    // tft.fillRect(236, 50, 40, 10, TFT_BLACK);
     if (digitalRead(input1))
     {
       delay(10);
       if (digitalRead(input1))
+      {
+        // tft.setCursor(44, 55);
+        // tft.print(analogRead(input1));
         tft.fillCircle(64, 80, 15, TFT_RED);
+      }
     }
     else
     {
@@ -451,9 +472,13 @@ void page_i0(int x, int y)
     }
     if (digitalRead(input2))
     {
-      delay(10);
-      if (digitalRead(input1))
+      delay(5);
+      if (digitalRead(input2))
+      {
+        // tft.setCursor(108, 55);
+        // tft.print(analogRead(input2));
         tft.fillCircle(128, 80, 15, TFT_RED);
+      }
     }
     else
     {
@@ -462,8 +487,12 @@ void page_i0(int x, int y)
     if (digitalRead(input3))
     {
       delay(10);
-      if (digitalRead(input1))
+      if (digitalRead(input3))
+      {
+        // tft.setCursor(172, 55);
+        // tft.print(analogRead(input3));
         tft.fillCircle(192, 80, 15, TFT_RED);
+      }
     }
     else
     {
@@ -472,8 +501,12 @@ void page_i0(int x, int y)
     if (digitalRead(input4))
     {
       delay(10);
-      if (digitalRead(input1))
+      if (digitalRead(input4))
+      {
+        // tft.setCursor(236, 55);
+        // tft.print(analogRead(input4));
         tft.fillCircle(256, 80, 15, TFT_RED);
+      }
     }
     else
     {
@@ -641,6 +674,129 @@ void page_bluetoothserial(int x, int y)
     // {
     //   writescreen(serialbt.readStringUntil('\n'), 2, 2);
     // }
+  }
+}
+void page_NFC(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    tft.setCursor(60, screen_header + 40);
+    tft.textsize = 8;
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.print("NFC");
+    tft.textsize = 1;
+    renderexitbutton = true;
+    nfc.begin();
+    delay(1000);
+
+    uint32_t versiondata = nfc.getFirmwareVersion();
+    if (!versiondata)
+    {
+      Serial.print("Didn't find PN53x board");
+    }
+
+    // Got ok data, print it out!
+    Serial.print("Found chip PN5");
+    Serial.println((versiondata >> 24) & 0xFF, HEX);
+    Serial.print("Firmware ver. ");
+    Serial.print((versiondata >> 16) & 0xFF, DEC);
+    Serial.print('.');
+    Serial.println((versiondata >> 8) & 0xFF, DEC);
+
+    // Set the max number of retry attempts to read from a card
+    // This prevents us from waiting forever for a card, which is
+    // the default behaviour of the PN532.
+    nfc.setPassiveActivationRetries(0xFF);
+
+    Serial.println("Waiting for an ISO14443A card");
+
+    renderexitbutton = true;
+    first = false;
+  }
+  else
+  {
+    boolean success;
+    uint8_t uid[] = {0, 0, 0, 0, 0, 0, 0}; // Buffer to store the returned UID
+    uint8_t uidLength;                     // Length of the UID (4 or 7 bytes depending on ISO14443A card type)
+
+    // Wait for an ISO14443A type cards (Mifare, etc.).  When one is found
+    // 'uid' will be populated with the UID, and uidLength will indicate
+    // if the uid is 4 bytes (Mifare Classic) or 7 bytes (Mifare Ultralight)
+    success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength);
+
+    if (success)
+    {
+      Serial.println("Found a card!");
+      Serial.print("UID Length: ");
+      Serial.print(uidLength, DEC);
+      Serial.println(" bytes");
+      Serial.print("UID Value: ");
+      for (uint8_t i = 0; i < uidLength; i++)
+      {
+        Serial.print(" 0x");
+        Serial.print(uid[i], HEX);
+      }
+      Serial.println("");
+      // Wait 1 second before continuing
+      delay(1000);
+    }
+    else
+    {
+      // PN532 probably timed out waiting for a card
+      Serial.println("Timed out waiting for a card");
+    }
+  }
+}
+void page_GPS(int x, int y)
+{
+  if (first)
+  {
+    tft.fillRect(0, screen_header, screen_width, screen_hight, TFT_BLACK);
+    tft.drawRect(0, 0, tft.width(), tft.height(), TFT_WHITE);
+    neogps.begin(9600, SERIAL_8N1, rx2, tx2);
+    neogps.println();
+    timer = millis();
+    tft.setCursor(60, screen_header + 40);
+    tft.textsize = 8;
+    tft.setTextColor(TFT_WHITE, TFT_BLACK);
+    tft.print("GPS");
+    tft.textsize = 1;
+
+    renderexitbutton = true;
+    first = false;
+  }
+  else
+  {
+    if (neogps.available() > 0 && millis() >= timer)
+    {
+      tft.fillRect(0, screen_header + 100, 320, (480 - 100 - screen_footer) - screen_header, TFT_BLACK);
+      gps.encode(neogps.read());
+      tft.setCursor(10, screen_header + 100);
+      tft.print("location : ");
+      // if (gps.location.isValid() == 1)
+      // {
+      tft.println("");
+      tft.print("latitude : ");
+      tft.println(gps.location.lat());
+      tft.print("longtitude : ");
+      tft.println(gps.location.lng());
+      tft.printf("altitude : %d m\n", gps.altitude.meters());
+      tft.printf("speed : %d km/h\n", gps.speed.kmph());
+      tft.print("satelite available : ");
+      tft.println(gps.satellites.value());
+      tft.print("course : ");
+      tft.println(gps.course.value());
+      tft.printf("time : %i:%i:%i \n", gps.time.hour(), gps.time.minute(), gps.time.second());
+      tft.printf("date : %i,%i,%i \n", gps.date.year(), gps.date.month(), gps.date.day());
+      // }
+      // else
+      // {
+      //   tft.print("invalid");
+      // }
+      timer = millis() + 10000;
+    }
   }
 }
 void page_setting(int x, int y)
@@ -838,9 +994,13 @@ void page_paint(bool touch, int x, int y)
   {
     if (touch && y > 40 && y < 460)
     {
-      if (x >= 299 && y <= 201)
+      if (x >= 299 && y <= 240)
       {
-        changecolor(y);
+        int button = buttonselect(x, y);
+        if (button > 0)
+        {
+          color = colors[button - 1];
+        }
       }
       else
       {
@@ -1028,7 +1188,7 @@ int calculateWidth_m(int count, int bw)
 }
 int calculateheight_m(int count, int bh)
 {
-  return round((float)(((screen_hight - screen_footer - screen_header) - (bh * count)) / (count + 1)));
+  return round((float)(((screen_hight) - (bh * count)) / (count + 1)));
 }
 int buttonselect(int x, int y)
 {
@@ -1048,27 +1208,32 @@ void drawPalette(uint16_t colors[], int numColors)
   int width = 20;  // width of each rectangle
   int height = 20; // height of each rectangle
   int spacing = 1; // spacing between each rectangle
-
+  for (int i = 0; i < 18; i++)
+  {
+    buttonlist[i] = {0, 0, 0, 0};
+  }
+  buttonlist_s = 0;
   for (int i = 0; i < numColors; i++)
   {
     tft.fillRect(x, y + i * (height + spacing), width, height, colors[i]);
+    buttonlist[i] = {x, y + i * (height + spacing), width, height};
   }
 }
 
-void changecolor(int y)
-{
-  // Calculate the index based on the y value
-  y = (y - 40) - y % 20;
-  int index = y / 20;
-  // Ensure index is within bounds
-  if (index < 0)
-    index = 0;
-  else if (index >= sizeof(colors) / sizeof(colors[0]))
-    index = sizeof(colors) / sizeof(colors[0]) - 1;
+// void changecolor(int y)
+// {
+//   // Calculate the index based on the y value
+//   y = (y - 40) - y % 20;
+//   int index = y / 20;
+//   // Ensure index is within bounds
+//   if (index < 0)
+//     index = 0;
+//   else if (index >= sizeof(colors) / sizeof(colors[0]))
+//     index = sizeof(colors) / sizeof(colors[0]) - 1;
 
-  // Set the color
-  color = colors[index];
-}
+//   // Set the color
+//   color = colors[index];
+// }
 
 // Code to run a screen calibration, not needed when calibration values set in setup()
 void touch_calibrate()
